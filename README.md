@@ -55,8 +55,6 @@ n8n acts as the **orchestration layer**, while execution remains external.
 
 
 
-```md
-```text
 [ Chatbot ]
      |
      v
@@ -87,28 +85,6 @@ n8n acts as the **orchestration layer**, while execution remains external.
 This mirrors real-world automation patterns used in production systems.
 
 ---
-
-## 📂 Repository Structure
-workflow/
-
-chatbot_job_orchestration.json
-(Sanitized n8n workflow with credentials removed)
-
-backend-contract/
-
-api_contract.md
-(Mock backend API contract used by the workflow)
-
-case-study/
-
-Chatbot_Driven_n8n_Automation_Case_Study.pdf
-(Detailed explanation with screenshots and flow)
-
-docs/
-
-architecture.png (optional)
-
-
 
 
 ---
