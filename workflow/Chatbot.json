@@ -1,0 +1,758 @@
+{
+  "name": "Chatbot",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "chatbot",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -1568,
+        0
+      ],
+      "id": "8fcc8082-2096-4d47-880d-df9af37f77ad",
+      "name": "Entry Point",
+      "webhookId": "2de5948d-2a15-4a0b-85aa-179d503d6482"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n  {\n    context: {\n      request_id: $execution.id,\n      payload: $json.body,\n      retry_count: 0,\n      poll_count: 0,\n      job_id: null\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1200,
+        0
+      ],
+      "id": "1c1d8f1f-3dc6-41a9-9aa7-7920bc9c4b03",
+      "name": "Init Context"
+    },
+    {
+      "parameters": {
+        "url": "http://host.docker.internal:5000/ping",
+        "options": {
+          "response": {
+            "response": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -1024,
+        0
+      ],
+      "id": "b327c7ba-712c-4308-9214-2d4eac1dc0fe",
+      "name": "Health Check"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "51fc1207-6197-4233-9b5c-85293d5d5f85",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "UP",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -864,
+        0
+      ],
+      "id": "f3bc2d77-f22d-4381-99b3-96e480b1867a",
+      "name": "Health Ok ?"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:5000/execute",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \n  \"job_name\": \"{{ $('Init Context').item.json.context.payload.job_name }}\",\n  \"requested_by\":\"{{ $('Init Context').item.json.context.payload.requested_by }}\",\n  \"priority\": \"{{ $('Init Context').item.json.context.payload.priority }}\"\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -640,
+        -224
+      ],
+      "id": "bd0c28a5-d3d8-4efb-9ab2-b4cbaf66212a",
+      "name": "Execute Job"
+    },
+    {
+      "parameters": {
+        "jsCode": "const status = $json.statusCode;\nconst body = $json.body || {};\n\nreturn [\n  {\n    context: {\n      ...$node[\"Init Context\"].json.context,\n\n      execute_status: status,\n      execute_body: body,\n\n      system_busy: Boolean(status === 503 && body.error === \"SYSTEM_BUSY\"),\n\n      // pick job_id when present\n      job_id: $input.first().json.job_id || null,\n\n      // optional: store job state if sent\n      job_status: $input.first().json.status || null\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -448,
+        -224
+      ],
+      "id": "c242b34d-8fad-4ae9-83a8-974bddad38f6",
+      "name": "Normalize Execute Response"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1f4f196d-42d8-4cac-bdfb-e8badf82296c",
+              "name": "context.job_id",
+              "value": "={{ $json.context.job_id }}",
+              "type": "string"
+            },
+            {
+              "id": "94d88230-845a-4052-b33c-06cc3a428253",
+              "name": "context.job_status",
+              "value": "={{ $json.context.job_status }}",
+              "type": "string"
+            },
+            {
+              "id": "d2321bac-f396-4e18-9a14-a11d9c73067e",
+              "name": "context.poll_count",
+              "value": "={{ $json.context.poll_count }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -96,
+        -32
+      ],
+      "id": "1eee3332-9e87-4311-b67a-1076d67bcc2c",
+      "name": "Capture Job ID"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "33147993-dea6-4ff1-91ce-49bc067e6b21",
+              "leftValue": "={{ $json.context.system_busy }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "9d079c42-d822-4c6c-8d0b-a0c09fd6b337",
+              "leftValue": "={{ $json.context.retry_count }}",
+              "rightValue": 3,
+              "operator": {
+                "type": "number",
+                "operation": "lt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -256,
+        -224
+      ],
+      "id": "a7979512-55d4-494d-869f-659001e2e3ee",
+      "name": "System Busy ?"
+    },
+    {
+      "parameters": {
+        "url": "=http://host.docker.internal:5000/status/{{ $json.context.job_id }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        80,
+        -32
+      ],
+      "id": "be5ac6ae-b721-4fd0-8c49-4b9951f7494c",
+      "name": "Poll Job Status"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n  {\n    context: {\n      ...$node[\"Capture Job ID\"].json.context,\n\n     \n      job_status: $json.state || null,\n\n      \n      poll_count: $node[\"Capture Job ID\"].json.context.poll_count\n    }\n  }\n];\n\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        -32
+      ],
+      "id": "df491552-c1d1-4bd2-af5e-c57c558e354f",
+      "name": "Normalize"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "a659b98a-b04b-4f05-9dbf-0ddb55ae0bf1",
+              "leftValue": "={{ $json.context.poll_count }}",
+              "rightValue": 2,
+              "operator": {
+                "type": "number",
+                "operation": "lt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        880,
+        192
+      ],
+      "id": "0709cb20-1d1b-4d8f-a91a-1665830cb2a5",
+      "name": "Poll Limit ?"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1136,
+        176
+      ],
+      "id": "9df31dff-e2db-4c7e-8b42-14d482c75b4c",
+      "name": "Wait",
+      "webhookId": "2184dc9c-0e87-47b6-b61d-f4b8bf6b2f9e"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "0048475b-ddad-4c19-98b7-43fde3933df6",
+              "leftValue": "={{ $json.context.job_status }}",
+              "rightValue": "SUCCESS",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "d225f67d-5e47-4a4d-b3e8-6aec3efc186e",
+              "leftValue": "={{ $json.context.job_status }}",
+              "rightValue": "TIMED_OUT",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        432,
+        -32
+      ],
+      "id": "03592edd-64a7-4adf-a8ad-3d0b1664fc29",
+      "name": "Terminal State ?",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n  {\n    context: {\n      ...$json.context,\n      poll_count: $json.context.poll_count + 1\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        192
+      ],
+      "id": "b0906375-1856-4383-96b8-a513ad985cf3",
+      "name": "Increment Poll Count"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n  {\n    final_result: {\n      request_id: $node[\"Capture Job ID\"].json.context.request_id,\n      job_id: $json.context.job_id,\n      status: $json.context.job_status,\n      poll_count: $json.context.poll_count,\n      completed_at: new Date().toISOString()\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        -48
+      ],
+      "id": "fe1a1ba2-2950-4854-a2a9-2b22852e0d77",
+      "name": "Build Final Result"
+    },
+    {
+      "parameters": {
+        "sendTo": "",
+        "subject": "=Job {{ $json.final_result.job_id }} completed successfully",
+        "message": "=Job Execution Update  \nRequest ID : {{ $json.final_result.request_id }}\n\nJob ID : {{ $json.final_result.job_id }} \n\nStatus : {{ $json.final_result.status }}\n\nPoll Count : {{ $json.final_result.poll_count }}\n\nCompleted : {{ $json.final_result.completed_at }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1120,
+        -320
+      ],
+      "id": "c93a4a81-d629-47eb-964a-720b4b02f50a",
+      "name": "SUCCESS email",
+      "webhookId": "c6a6498b-2be2-478a-832c-91bf4905caf0"
+    },
+    {
+      "parameters": {
+        "sendTo": "alerts@example.com",
+        "subject": "=Job {{ $json.final_result.job_id }} timed out",
+        "message": "=Job Execution Update  Request ID : {{ $json.final_result.request_id }} Job ID     : {{ $json.final_result.job_id }} Status     : {{ $json.final_result.status }} Poll Count : {{ $json.final_result.poll_count }} Completed  : {{ $json.final_result.completed_at }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1136,
+        -32
+      ],
+      "id": "31a04fe6-3c14-4d01-a7ca-ab5e15ae8586",
+      "name": "TIMEOUT email",
+      "webhookId": "c6a6498b-2be2-478a-832c-91bf4905caf0",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "ebdc2187-39b5-47ab-ba1f-731c5b88dcae",
+              "leftValue": "={{ $json.final_result.status }}",
+              "rightValue": "=SUCCESS",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        864,
+        -48
+      ],
+      "id": "0a6ca96d-7210-492b-826c-5103c807f179",
+      "name": "Decide Email Type"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n  {\n    context: {\n      ...$json.context,\n      retry_count: $json.context.retry_count + 1\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -80,
+        -240
+      ],
+      "id": "515dda8e-c2ca-46bb-9a10-0f9d2368fa48",
+      "name": "Increment Retry Count"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        112,
+        -240
+      ],
+      "id": "85b59fbc-011a-4dc3-a1de-3c35b6d54b26",
+      "name": "Wait1",
+      "webhookId": "77119fa7-4573-48d2-818b-4bb4b23d44cf"
+    },
+    {
+      "parameters": {
+        "sendTo": "alerts@example.com",
+        "subject": "=Polling limit reached for Job {{ $json.final_result.job_id }}",
+        "message": "=Polling limit has been reached.  Request ID : {{ $json.final_result.request_id }} Job ID     : {{ $json.final_result.job_id }} Status     : {{ $json.final_result.status }} Poll Count : {{ $json.final_result.poll_count }} Time       : {{ $json.final_result.completed_at }}  Manual intervention may be required.",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1200,
+        416
+      ],
+      "id": "3ee214cb-6dae-4ab0-b694-a7838706ebd9",
+      "name": "Poll Limit Email",
+      "webhookId": "37d0b3a5-00ea-4f9f-8d0b-0d7827055ebf",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n  {\n    final_result: {\n      request_id: $node[\"Capture Job ID\"].json.context.request_id,\n      job_id: $json.context.job_id,\n      status: \"POLL_LIMIT_EXCEEDED\",\n      poll_count: $json.context.poll_count,\n      completed_at: new Date().toISOString()\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        960,
+        416
+      ],
+      "id": "dbc4887f-6e3d-449c-adf6-6b45e49d4052",
+      "name": "Build Poll Limit Result"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"request_id\": \"{{ $execution.id }}\",\n  \"status\": \"accepted\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        -1376,
+        0
+      ],
+      "id": "662cb42f-d0de-4533-841a-21e909c6fc95",
+      "name": "Request ID"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Entry Point": {
+      "main": [
+        [
+          {
+            "node": "Request ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Init Context": {
+      "main": [
+        [
+          {
+            "node": "Health Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Health Check": {
+      "main": [
+        [
+          {
+            "node": "Health Ok ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Health Ok ?": {
+      "main": [
+        [
+          {
+            "node": "Execute Job",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Job": {
+      "main": [
+        [
+          {
+            "node": "Normalize Execute Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Execute Response": {
+      "main": [
+        [
+          {
+            "node": "System Busy ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "System Busy ?": {
+      "main": [
+        [
+          {
+            "node": "Increment Retry Count",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Wait1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Capture Job ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Capture Job ID": {
+      "main": [
+        [
+          {
+            "node": "Poll Job Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Poll Job Status": {
+      "main": [
+        [
+          {
+            "node": "Normalize",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize": {
+      "main": [
+        [
+          {
+            "node": "Terminal State ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Poll Limit ?": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Poll Limit Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Capture Job ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Terminal State ?": {
+      "main": [
+        [
+          {
+            "node": "Build Final Result",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Increment Poll Count",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Increment Poll Count": {
+      "main": [
+        [
+          {
+            "node": "Poll Limit ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Final Result": {
+      "main": [
+        [
+          {
+            "node": "Decide Email Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "TIMEOUT email": {
+      "main": [
+        []
+      ]
+    },
+    "Decide Email Type": {
+      "main": [
+        [
+          {
+            "node": "SUCCESS email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "TIMEOUT email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait1": {
+      "main": [
+        [
+          {
+            "node": "Execute Job",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Increment Retry Count": {
+      "main": [
+        [
+          {
+            "node": "Wait1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Poll Limit Result": {
+      "main": [
+        [
+          {
+            "node": "Poll Limit Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Request ID": {
+      "main": [
+        [
+          {
+            "node": "Init Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false ,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "c16ca888-5ef0-4e02-912b-0185c0a2ddaf",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "7d69fcc9f72f61a1b4b55684875da003d91aa6d4ae0ff158174ff32682c396c7"
+  },
+  "id": "LDwokcO5tNO428VfBoTfO",
+  "tags": []
+}
