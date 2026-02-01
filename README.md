@@ -1,3 +1,14 @@
+<p align="center">
+  <img src="docs/logo.png" alt="Project Logo" width="160"/>
+</p>
+
+<h1 align="center">Chatbot-Driven Automation using n8n</h1>
+
+<p align="center">
+  Reliable workflow orchestration with retries, polling, and notifications
+</p>
+
+
 # n8n-chatbot-automation-orchestration
 Chatbot-driven automation using n8n as an orchestration layer. This project demonstrates production-style workflows with health checks, async execution, retries, polling limits, and user-friendly notifications. Designed to reduce manual operations, improve reliability, and save engineering time while keeping execution decoupled from orchestration.
 
