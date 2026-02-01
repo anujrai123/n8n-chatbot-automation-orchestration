@@ -51,6 +51,27 @@ n8n acts as the **orchestration layer**, while execution remains external.
 ## 🏗 High-Level Architecture
 
 
+---
+
+
+
+```md
+```text
+[ Chatbot ]
+     |
+     v
+[ n8n Webhook ]
+     |
+     v
+[ Orchestration Logic ]
+(Health Checks, Retries, Polling)
+     |
+     v
+[ Backend APIs ]
+(Execution & Status)
+
+
+
 
 ---
 
