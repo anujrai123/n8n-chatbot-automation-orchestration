@@ -50,3 +50,90 @@ n8n acts as the **orchestration layer**, while execution remains external.
 
 ## 🏗 High-Level Architecture
 
+
+
+---
+
+## 🔁 Workflow Highlights
+
+- **Immediate request acknowledgement** (non-blocking)
+- **Explicit execution context** (request_id, retry_count, poll_count)
+- **System busy handling with retries**
+- **Asynchronous polling for long-running jobs**
+- **Polling limits to prevent infinite execution**
+- **Human-friendly email notifications**
+
+This mirrors real-world automation patterns used in production systems.
+
+---
+
+## 📂 Repository Structure
+workflow/
+
+chatbot_job_orchestration.json
+(Sanitized n8n workflow with credentials removed)
+
+backend-contract/
+
+api_contract.md
+(Mock backend API contract used by the workflow)
+
+case-study/
+
+Chatbot_Driven_n8n_Automation_Case_Study.pdf
+(Detailed explanation with screenshots and flow)
+
+docs/
+
+architecture.png (optional)
+
+
+
+
+---
+
+## 🔐 Security & Credentials
+
+All credentials, OAuth tokens, and secrets have been **intentionally removed**
+before publishing.
+
+Email and external integrations are included only to demonstrate
+**orchestration and escalation patterns**.
+
+In real deployments, credentials are managed securely per environment.
+
+---
+
+## 🧪 Backend Implementation
+
+The actual backend service (Flask) is not included.
+
+This repository focuses on **automation and orchestration design**.
+A mock API contract is provided to explain how the n8n workflow interacts
+with backend systems in a real deployment.
+
+---
+
+## 🎯 Why This Project Matters
+
+This workflow reduces:
+- Manual monitoring effort
+- Mean time to resolution (MTTR)
+- Operational overhead
+
+And improves:
+- Reliability
+- Scalability
+- Clarity for non-technical users
+
+It demonstrates how automation can save **time, cost, and engineering effort**
+while improving system reliability.
+
+---
+
+## 👤 Author
+
+**Anuj Rai**  
+Automation Engineer | Workflow Orchestration | Observability  
+
+
