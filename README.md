@@ -10,9 +10,6 @@
 
 
 
-
-# Chatbot-Driven Automation using n8n
-
 This repository demonstrates how **n8n can be used as an orchestration layer**
 to handle chatbot-driven automation in a production-style environment.
 
